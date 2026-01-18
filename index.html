@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Shrimp Clicker 🦐</title>
+  <style>
+    :root{
+      --bg1:#283048; --bg2:#859398; --card:#32323C99;
+      --btn:#4e5d6c; --btn-hover:#607184; --btn-disabled:#333a41;
+      --accent:#7dd3fc; 
+    }
+    html,body {height:100%; margin:0; position:relative; z-index:0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:linear-gradient(135deg,var(--bg1),var(--bg2)); color:#eee;}
+
+    body {
+        display: grid;
+        grid-template-columns: 1fr minmax(300px, 980px) 1fr; 
+        min-height: 100vh;
+        gap: 20px;
+        padding: 24px 0; 
+    }
+
+    .leaderboard-container {
+        grid-column: 1 / 2;
+        padding-left: 24px; 
+        align-self: start; 
+    }
+
+    .game-container{
+        grid-column: 2 / 3;
+        width: 100%; 
+        padding: 20px;
+        text-align:center;
+        margin: 0; 
+    }
+
+    @media (max-width: 980px) {
+        body {
+            grid-template-columns: 1fr minmax(300px, 100%) 1fr; 
+            gap: 10px;
+        }
+    }
+    @media (max-width: 600px) {
+        body {
+            grid-template-columns: 10px 1fr 10px; 
+            padding: 10px 0;
+        }
+        .leaderboard-container {
+            grid-column: 2 / 3; 
+            order: 2; 
+            padding-left: 0;
+        }
+        .game-container {
+            grid-column: 2 / 3; 
+            order: 1; 
+            padding: 10px 0;
+        }
+        .upgrades {
+            width: 100%;
+        }
+    }
+
+    h1{margin:6px 0;text-shadow:0 2px 4px rgba(0,0,0,.7);}    
+    .shrimp{width:200px;height:200px;background:url('https://static.vecteezy.com/system/resources/previews/036/161/836/non_2x/tiger-shrimp-on-a-transparent-background-free-png.png') no-repeat center/contain;margin:18px auto;cursor:pointer;transition:transform .08s ease;}
+    .shrimp:active{transform:scale(.94);}    
+    .stats{margin:10px 0;font-size:1.05rem;}
+    .count {font-size:2rem;font-weight:700;display:inline-block;min-width:200px;transition:transform .2s;}
+    .small{font-size:.9rem;color:#cfd8dc;}
+    .upgrades{margin-top:20px;background:var(--card);display:inline-block;padding:18px 26px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.6);text-align:left;}
+    .upgrade-btn{display:block;width:100%;text-align:left;padding:12px 16px;margin:8px 0;background-color:var(--btn);color:#f0f0f0;border:1px solid #62717a;border-radius:8px;cursor:pointer;transition:background .15s,transform .08s;}
+    .upgrade-btn:hover:not(:disabled){background-color:var(--btn-hover);transform:translateX(4px);}
+    .upgrade-btn:disabled{background-color:var(--btn-disabled);color:#777;cursor:not-allowed;}
+    .upgrade-cost{float:right;font-weight:700;}
+    .controls{margin-top:18px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+    .control-btn{background:#1f2937;color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer}
+    .control-btn:disabled{opacity:.5;cursor:not-allowed;}
+    .floating-shrimp{position:absolute;width:48px;height:48px;background-size:contain;animation:floatUp 1.2s ease-out forwards;pointer-events:none;z-index:120;}
+    @keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-100px) scale(.9)}}
+    .click-effect{position:absolute;font-size:1.6rem;font-weight:700;color:#fff;text-shadow:0 0 6px #000;pointer-events:none;animation:floatText 1s ease-out forwards;z-index:130;}
+    @keyframes floatText{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-80px)}}
+    .flash-buy{animation:flash .35s linear}
+    @keyframes flash{0%{box-shadow:0 0 0 0 rgba(125,211,252,.55)}70%{box-shadow:0 0 0 16px rgba(125,211,252,0)}100%{box-shadow:none}}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .meta{font-size:.9rem;color:#cfd8dc}
+    .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:1000;opacity:0;pointer-events:none;transition:opacity .18s;}
+    .modal.show{opacity:1;pointer-events:auto}
+    .modal-card{background:#0f1724;padding:18px;border-radius:12px;color:#fff;min-width:280px;max-width:90%;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+    .shop-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px}
+    .shop-item{background:#071025;border-radius:10px;padding:10px;text-align:center;border:1px solid rgba(255,255,255,0.04)}
+    .shop-item img{width:100%;height:120px;object-fit:contain;border-radius:6px;background:#08202a;padding:6px}
+    .shop-item button{margin-top:8px;width:100%}
+    .owned-badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#0b7; color:#012; font-weight:700;margin-top:8px}
+    
+    .leaderboard {
+        text-align: left;
+        background: rgba(17, 24, 39, 0.9); 
+        padding: 16px;
+        border-radius: 12px;
+        color: #e6eef3;
+        width: 100%;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5); 
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .leaderboard h4 {
+        margin: 0 0 12px 0;
+        color: var(--accent); 
+        font-size: 1.2em;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    }
+    .leaderboard ol {
+        list-style: none; 
+        padding: 0;
+        margin: 0;
+        counter-reset: rank; 
+    }
+    .leaderboard ol li {
+        counter-increment: rank; 
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        margin-bottom: 6px;
+        border-radius: 6px;
+        background-color: rgba(255, 255, 255, 0.05); 
+        transition: background-color 0.2s;
+        font-weight: 500;
+    }
+    .leaderboard ol li:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    .leaderboard ol li::before {
+        content: counter(rank); 
+        font-weight: 700;
+        min-width: 20px;
+        text-align: center;
+        margin-right: 12px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        background: #4b5563; 
+        color: #fff;
+    }
+
+    .leaderboard ol li:nth-child(1)::before { background: #ffd700; color: #333; box-shadow: 0 0 10px rgba(255, 215, 0, 0.8); }
+    .leaderboard ol li:nth-child(2)::before { background: #c0c0c0; color: #333; }
+    .leaderboard ol li:nth-child(3)::before { background: #cd7f32; color: #333; }
+
+    .leaderboard .player-name {
+        flex-grow: 1; 
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .leaderboard .score {
+        font-weight: 700;
+        color: var(--accent);
+        margin-left: 10px;
+        flex-shrink: 0; 
+    }
+    .leaderboard .date-meta {
+        font-size: 0.75rem;
+        color: #9aa6b2;
+        margin-left: 10px;
+        flex-shrink: 0;
+    }
+    .bump{animation:bump .18s ease}
+    @keyframes bump{0%{transform:scale(1)}50%{transform:scale(1.09)}100%{transform:scale(1)}}
+
+    .falling-shrimp {
+      position: fixed;
+      top: -80px;
+      width: 60px;
+      height: 60px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      pointer-events: none;
+      opacity: 0.55;
+      z-index: -1;
+      animation: fallShrimp linear forwards;
+    }
+
+    @keyframes fallShrimp {
+      from { transform: translateY(-120px) rotate(0deg); }
+      to   { transform: translateY(110vh) rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+    <div class="leaderboard-container">
+        <div class="leaderboard" id="leaderboard">
+            <h4>Top Players</h4>
+            <ol id="leaders"></ol>
+            <div style="margin-top:8px;font-size:.85rem;color:#bfcfe0">Best Shrimp Count: <span id="bestCount">0</span></div>
+        </div>
+    </div>
+
+    <div class="game-container">
+      <h1>🦐 Shrimp Clicker 🦐</h1>
+      <div style="font-size:.95rem;color:#bfcfe0;margin-top:6px">Player: <span id="playerNameDisplay">Guest</span></div>
+      <div id="shrimp" class="shrimp" title="Click me!"></div>
+
+      <div class="stats">
+        <div class="row" style="justify-content:center;align-items:flex-end">
+          <div style="text-align:center">
+            <div class="small">Shrimps</div>
+            <div id="counter" class="count">0</div>
+          </div>
+          <div style="text-align:left">
+            <div class="small">Per Click</div>
+            <div id="spc" class="count">1</div>
+          </div>
+          <div style="text-align:left">
+            <div class="small">Per Second</div>
+            <div id="sps" class="count">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:8px;display:flex;justify-content:center;gap:18px;align-items:center;flex-wrap:wrap">
+        <div style="text-align:center">
+          <div class="small">Cash</div>
+          <div id="cashDisplay" class="count">$0.00</div>
+        </div>
+        <div style="text-align:center">
+          <div class="small">Shrimp Price</div>
+          <div id="priceDisplay" class="count">$0.00</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="saveBtn" class="control-btn">Save</button>
+        <button id="loadBtn" class="control-btn">Load</button>
+        <button id="submitLeaderBtn" class="control-btn">Submit Score</button>
+        <button id="shopBtn" class="control-btn">Shop</button>
+        <button id="sellBtn" class="control-btn">Sell Shrimps</button>
+        <div style="align-self:center;color:#cbd5e1">Owned skins: <span id="ownedCount">0</span></div>
+      </div>
+
+      <div class="upgrades" id="upgradesBox">
+        <h3>Upgrades</h3>
+        <button id="upg-net" class="upgrade-btn"><span class="upgrade-title">Stronger Net (+1 SPC)</span><span class="upgrade-cost" id="cost-net">20</span></button>
+        <button id="upg-sps1" class="upgrade-btn"><span class="upgrade-title">Small Fry Factory (+1 SPS)</span><span class="upgrade-cost" id="cost-sps1">100</span></button>
+        <button id="upg-sps2" class="upgrade-btn"><span class="upgrade-title">Medium Shrimp Farm (+10 SPS)</span><span class="upgrade-cost" id="cost-sps2">2000</span></button>
+        <button id="upg-sps3" class="upgrade-btn"><span class="upgrade-title">Mega Shrimp Reactor (+100 SPS)</span><span class="upgrade-cost" id="cost-sps3">50000</span></button>
+      </div>
+    </div>
+
+    <div id="nickModal" class="modal">
+      <div class="modal-card">
+        <h3>Choose a nickname</h3>
+        <input id="playerNameInput" type="text" placeholder="Type your nickname" style="width:100%;padding:8px;border-radius:6px;border:none;margin-top:8px" />
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <button id="playerNameSave" class="control-btn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="shopModal" class="modal">
+      <div class="modal-card">
+        <h3>Shrimp Skins Shop</h3>
+        <div id="shopGrid" class="shop-grid"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <button id="closeShop" class="control-btn">Close</button>
+        </div>
+      </div>
+    </div>
+
+<script>
+// --- SECRETS PLACEHOLDERS (Replaced by GitHub Actions) ---
+const JSONBIN_SECRET_KEY = '__JSONBIN_SECRET_KEY__'; 
+const JSONBIN_BIN_ID = '__JSONBIN_BIN_ID__';  
+const LEADERBOARD_API = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+
+// --- GAME LOGIC ---
+const SAVE_KEY = 'shrimp_clicker_save_v4';
+const PLAYER_NAME_KEY = 'shrimp_clicker_player_v1';
+
+let shrimp = 0;
+let spc = 1;
+let sps = 0;
+let bestShrimp = 0;
+let cash = 0;               
+let shrimpPrice = 0.25;     
+let marketMultiplier = 1.0; 
+let marketTrend = 0;        
+
+const upgrades = {
+  net:   { base: 20,    count: 0, boost: 1,  type: "spc", visible: true },
+  sps1:  { base: 100,   count: 0, boost: 1,  type: "sps", visible: false },
+  sps2:  { base: 2000,  count: 0, boost: 10, type: "sps", visible: false },
+  sps3:  { base: 50000, count: 0, boost: 100,type: "sps", visible: false }
+};
+
+const SKINS = [
+  { id: 'default', name: 'Default Shrimp', img: 'https://static.vecteezy.com/system/resources/previews/036/161/836/non_2x/tiger-shrimp-on-a-transparent-background-free-png.png', cost: 0 },
+  { id: 'tempura', name: 'King Shrimp', img: 'https://www.auraaquarium.com/cdn/shop/products/131_300x300.png?v=1678421939', cost: 250 },
+  { id: 'pimp', name: 'Pimp Shrimp', img: 'https://preview.redd.it/ptktkt94of651.jpg?width=640&crop=smart&auto=webp&s=ece45242378a8f10824026038c66fa6891eb2eaf', cost: 100000 },
+];
+
+let unlockedSkins = new Set(['default']);
+let equippedSkin = 'default';
+let playerName = localStorage.getItem(PLAYER_NAME_KEY) || '';
+
+const counterEl = document.getElementById('counter');
+const spcEl = document.getElementById('spc');
+const spsEl = document.getElementById('sps');
+const bestCountEl = document.getElementById('bestCount');
+const leadersList = document.getElementById('leaders');
+const ownedCountEl = document.getElementById('ownedCount');
+const shrimpEl = document.getElementById('shrimp');
+const submitLeaderBtn = document.getElementById('submitLeaderBtn');
+const playerNameDisplay = document.getElementById('playerNameDisplay');
+const nickModal = document.getElementById('nickModal');
+const playerNameInput = document.getElementById('playerNameInput');
+const playerNameSave = document.getElementById('playerNameSave');
+const cashDisplay = document.getElementById('cashDisplay');
+const priceDisplay = document.getElementById('priceDisplay');
+
+function formatNumber(num) {
+  if (!isFinite(num)) return '0';
+  const abs = Math.abs(num);
+  if (abs < 1000) return Math.floor(num).toString();
+  const abbrev = [
+    { v: 1e18, suf: 'E' }, { v: 1e15, suf: 'P' }, { v: 1e12, suf: 'T' },
+    { v: 1e9,  suf: 'B' }, { v: 1e6,  suf: 'M' }, { v: 1e3,  suf: 'K' }
+  ];
+  for (const a of abbrev) {
+    if (abs >= a.v) return (num / a.v).toFixed( (abs / a.v >= 100) ? 0 : (abs / a.v >= 10 ? 1 : 2) ) + a.suf;
+  }
+  return Math.floor(num).toString();
+}
+
+function upgradeCost(upg) { return Math.ceil(upg.base * Math.pow(1.15, upg.count)); }
+
+function recalcSPS() {
+  let total = 0;
+  for (const k in upgrades) if (upgrades[k].type === 'sps') total += upgrades[k].count * upgrades[k].boost;
+  sps = +total.toFixed(6);
+}
+
+function updateUI(){
+  counterEl.textContent = formatNumber(Math.floor(shrimp));
+  spcEl.textContent = formatNumber(spc);
+  spsEl.textContent = formatNumber(sps);
+  cashDisplay.textContent = '$' + Number(cash).toFixed(2);
+  priceDisplay.textContent = '$' + Number(shrimpPrice).toFixed(2);
+  if (shrimp > bestShrimp) bestShrimp = shrimp;
+  if (bestCountEl) bestCountEl.textContent = formatNumber(Math.floor(bestShrimp));
+  for (const key in upgrades) {
+    const up = upgrades[key];
+    const cost = upgradeCost(up);
+    const btn = document.getElementById('upg-' + key);
+    if(btn) {
+      btn.disabled = cash < cost;
+      if (!up.visible && shrimp >= up.base * 0.5) up.visible = true;
+      btn.style.display = up.visible ? 'block' : 'none';
+      const costEl = document.getElementById('cost-' + key);
+      if(costEl) costEl.textContent = '$' + formatNumber(cost);
+    }
+  }
+  ownedCountEl.textContent = String(unlockedSkins.size);
+  if(submitLeaderBtn) submitLeaderBtn.disabled = (Math.floor(bestShrimp) <= 0) || !playerName;
+  shrimpEl.style.backgroundImage = `url('${SKINS.find(x=>x.id===equippedSkin)?.img || SKINS[0].img}')`;
+}
+
+// Interactivity
+shrimpEl.addEventListener('click', (e) => {
+  shrimp = Math.floor(shrimp + spc);
+  updateUI();
+});
+
+document.getElementById('sellBtn').addEventListener('click', () => {
+  const amount = Math.floor(shrimp);
+  if (amount <= 0) return;
+  const earned = +(amount * shrimpPrice).toFixed(2);
+  shrimp -= amount;
+  cash += earned;
+  updateUI();
+});
+
+playerNameSave.addEventListener('click', () => {
+  playerName = playerNameInput.value.trim() || 'Player';
+  localStorage.setItem(PLAYER_NAME_KEY, playerName);
+  nickModal.classList.remove('show');
+  playerNameDisplay.textContent = playerName;
+  updateUI();
+});
+
+// Persistence
+function saveGame(manual=false){
+  const save = { shrimp, spc, sps, bestShrimp, cash, upgrades, unlockedSkins: Array.from(unlockedSkins), equippedSkin, playerName };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+  if(manual) { document.getElementById('saveBtn').textContent='Saved'; setTimeout(()=>document.getElementById('saveBtn').textContent='Save',900); }
+}
+
+async function submitScoreToLeaderboard() {
+  if (JSONBIN_SECRET_KEY.includes('__')) { alert("App is not yet deployed via GitHub Actions."); return; }
+  const newEntry = { name: playerName, shrimps: Math.floor(bestShrimp), date: Date.now() };
+  try {
+    const resp = await fetch(LEADERBOARD_API, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_SECRET_KEY },
+      body: JSON.stringify({ leaders: [newEntry] }) // Simplified for demo
+    });
+    if (resp.ok) alert("Score Submitted!");
+  } catch (e) { console.error(e); }
+}
+
+document.getElementById('saveBtn').addEventListener('click', ()=>saveGame(true));
+document.getElementById('submitLeaderBtn').addEventListener('click', submitScoreToLeaderboard);
+
+// Init
+(function init(){
+  playerNameDisplay.textContent = playerName || 'Guest';
+  if(!playerName) nickModal.classList.add('show');
+  updateUI();
+})();
+
+setInterval(() => { shrimp += sps / 10; updateUI(); }, 100);
+</script>
+</body>
+</html>
