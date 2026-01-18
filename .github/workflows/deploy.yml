@@ -1,9 +1,9 @@
-name: Deploy Shrimp Clicker
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches:
-      - main
+      - main  # or master
 
 permissions:
   contents: write
@@ -15,14 +15,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Inject Secrets into HTML
+      - name: Inject Secrets
         run: |
-          # We use quotes around the filename just in case, but index.html is safer!
           sed -i "s/__JSONBIN_SECRET_KEY__/${{ secrets.JSONBIN_SECRET_KEY }}/g" index.html
           sed -i "s/__JSONBIN_BIN_ID__/${{ secrets.JSONBIN_BIN_ID }}/g" index.html
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: . 
-          branch: gh-pages
+          folder: . # The folder the action should deploy.
+          branch: gh-pages # The branch the action should deploy to.
