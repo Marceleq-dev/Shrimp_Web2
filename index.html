@@ -310,9 +310,7 @@
 const SAVE_KEY = 'shrimp_clicker_save_v4';
 const PLAYER_NAME_KEY = 'shrimp_clicker_player_v1';
 
-const JSONBIN_SECRET_KEY = '$2a$10$f7uXDqseBiun.7MVCzn45eH6D03UQr3.XerJLIBYIkIfzr6G6e2Xu'; 
-const JSONBIN_BIN_ID = '6966463543b1c97be92db0e6';  
-const LEADERBOARD_API = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+const LEADERBOARD_API = `https://shrimp-leaderboard-api.marceleqmews.workers.dev/`;
 
 let shrimp = 0;
 let spc = 1;
@@ -734,13 +732,18 @@ function processLeaderboard(list, newEntry = null) {
 
 async function loadLeaderboard() {
   try {
-    const response = await fetch(LEADERBOARD_API + '/latest', {
-      method: 'GET',
-      headers: {
-        'X-Master-Key': JSONBIN_SECRET_KEY, 
-        'Content-Type': 'application/json'
-      }
-    });
+    const response = await fetch(LEADERBOARD_API);
+
+    if (!response.ok) throw new Error("Failed to fetch leaderboard");
+
+    const data = await response.json();
+    return Array.isArray(data.record?.leaders) ? data.record.leaders : [];
+  } catch (e) {
+    console.error("Error loading leaderboard:", e);
+    leadersList.innerHTML = '<li style="color:#f87171; justify-content:center;">Error connecting to leaderboard.</li>';
+    return [];
+  }
+}
 
     if (!response.ok) throw new Error(`Failed to fetch leaderboard: ${response.status} ${response.statusText}`);
     
@@ -778,53 +781,41 @@ async function renderLeaderboard() {
 }
 
 async function submitScoreToLeaderboard() {
-  if (JSONBIN_SECRET_KEY === 'YOUR_SECRET_KEY' || JSONBIN_BIN_ID === 'YOUR_BIN_ID') {
-      alert("WARNING: Global leaderboard is not configured. Please get your keys from JSONBin.io and replace the placeholders in the code.");
-      return;
-  }
-  
   if (!Number.isFinite(bestShrimp) || Math.floor(bestShrimp) <= 0) {
     alert('You must have a score greater than 0 to submit.');
     return;
   }
-  
+
   let name = playerName;
   if (!name || name.trim().length === 0) {
-      name = prompt('Enter name for Top Players leaderboard (leave blank for "Player")') || 'Player';
-      playerName = name;
-      localStorage.setItem(PLAYER_NAME_KEY, playerName);
-      if(playerNameDisplay) playerNameDisplay.textContent = playerName;
+    name = prompt('Enter name for Top Players leaderboard') || 'Player';
+    playerName = name;
+    localStorage.setItem(PLAYER_NAME_KEY, playerName);
+    if(playerNameDisplay) playerNameDisplay.textContent = playerName;
   }
-  
-  if (name.trim().length === 0) return; 
 
   const newEntry = {
     name: name,
     shrimps: Math.floor(bestShrimp),
     date: Date.now()
   };
-  
+
   try {
-    const currentList = await loadLeaderboard();
-    const updatedLeaders = processLeaderboard(currentList, newEntry);
-    
     const response = await fetch(LEADERBOARD_API, {
-      method: 'PUT', 
-      headers: { 
-        'Content-Type': 'application/json',
-        'X-Master-Key': JSONBIN_SECRET_KEY, 
-        'X-Bin-Versioning': 'false' 
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify({ leaders: updatedLeaders }) 
+      body: JSON.stringify(newEntry)
     });
-    
-    if (!response.ok) throw new Error(`Server returned status: ${response.status} ${response.statusText}`);
-    
-    alert(`Score of ${formatNumber(newEntry.shrimps)} submitted and updated globally!`);
-    await renderLeaderboard(); 
+
+    if (!response.ok) throw new Error("Failed to submit score");
+
+    alert(`Score of ${formatNumber(newEntry.shrimps)} submitted!`);
+    await renderLeaderboard();
   } catch (e) {
-    console.error('Error submitting score to JSONBin:', e);
-    alert('Failed to submit score. Could not connect to or update the global leaderboard.');
+    console.error("Error submitting score:", e);
+    alert("Failed to submit score.");
   }
 }
 
